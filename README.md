@@ -3,7 +3,7 @@
 Install dependencies:
 
 ```bash
-poetry install
+uv sync
 ```
 
 ## Increased Backpressure Demo
@@ -26,12 +26,12 @@ Even though the underlying TCP guarantees the delivery of the messages, that doe
 
 ```bash
 # Start the server
-poetry run python server.py
+uv run server.py
 ```
 
 ```bash
 # Start the client
-poetry run python client.py
+uv run client.py
 ```
 
 ### Output

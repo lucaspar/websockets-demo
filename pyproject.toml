@@ -1,17 +1,15 @@
-[tool.poetry]
-    authors     = ["Lucas Parzianello <lucaspar@users.noreply.github.com>"]
-    description = ""
-    name        = "websockets-demo"
-    readme      = "README.md"
-    version     = "0.1.0"
+[project]
+    authors         = [{ name = "Lucas Parzianello" }]
+    dependencies    = [
+    "loguru>=0.7.2",
+    "loremipsum>=1.0.5",
+    "setuptools>=74.1.2",
+    "websockets>=13.0.1",
+]
+    description     = ""
+    name            = "websockets-demo"
+    requires-python = ">=3.12,<3.13"
+    version         = "0.1.0"
 
-    [tool.poetry.dependencies]
-        loguru     = "^0.7.2"
-        loremipsum = "^1.0.5"
-        python     = ">=3.11,<3.12"
-        websockets = "^12.0"
-
-
-[build-system]
-    build-backend = "poetry.core.masonry.api"
-    requires      = ["poetry-core"]
+[tool.uv]
+    package = false
