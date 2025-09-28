@@ -19,7 +19,7 @@ from .server import SERVER_MSG_DELAY_SEC
 traceback.install(show_locals=True)
 
 # process messages slower than they are sent
-PROCESSING_DELAY_SEC = max(SERVER_MSG_DELAY_SEC * 10, 0.05)
+PROCESSING_DELAY_SEC: float = max(SERVER_MSG_DELAY_SEC * 10, 0.02)
 
 
 async def process_message(msg: str | bytes, prog: tqdm | None = None) -> None:
@@ -183,7 +183,7 @@ async def receive_messages() -> NoReturn | None:
 def main() -> None:
     """Run the client."""
     try:
-        asyncio.run(receive_messages(), debug=True)
+        asyncio.run(receive_messages())
     except KeyboardInterrupt:
         log.info("Client stopped by user.")
         raise

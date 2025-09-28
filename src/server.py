@@ -16,8 +16,8 @@ from . import common
 traceback.install(show_locals=True)
 
 
-SERVER_MSG_DELAY_SEC = 0
-SEND_MSGS_PERIOD_SEC = 10
+SERVER_MSG_DELAY_SEC: int = 0
+SEND_MSGS_PERIOD_SEC: int = 10
 MESSAGES_TO_SEND: int = (
     math.ceil(SEND_MSGS_PERIOD_SEC / SERVER_MSG_DELAY_SEC)
     if SERVER_MSG_DELAY_SEC > 0
@@ -96,7 +96,7 @@ async def run_server() -> None:
 def main() -> None:
     log.info("Starting server...")
     try:
-        asyncio.run(run_server(), debug=True)
+        asyncio.run(run_server())
     except KeyboardInterrupt:
         log.info("Server stopped by user.")
         raise
