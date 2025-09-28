@@ -1,11 +1,5 @@
 # Websocket Demos
 
-Install dependencies:
-
-```bash
-uv sync
-```
-
 ## Increased Backpressure Demo
 
 This demonstrates an increase in the backpressure of a websocket connection by sending messages faster than they can be processed.
@@ -15,6 +9,8 @@ Eventually the connection is closed with either one of these generic errors:
 + A `1006` [error code](https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1) on the server side (connection was closed abnormally) and the same on the client side.
 
 + A `1011` error code (internal error). The client fails immediately after the connection is closed.
+
+[More error codes](https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1).
 
 ## Observations
 
@@ -26,12 +22,12 @@ Even though the underlying TCP guarantees the delivery of the messages, that doe
 
 ```bash
 # Start the server
-uv run server.py
+uv run -m src.server
 ```
 
 ```bash
 # Start the client
-uv run client.py
+uv run -m src.client
 ```
 
 ### Output
