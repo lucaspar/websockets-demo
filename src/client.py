@@ -57,8 +57,13 @@ async def process_message(msg: str | bytes, prog: tqdm | None = None) -> None:
     try:
         await asyncio.to_thread(_atomic_append, _log_path, data)
         # simulates slow processing
+        percentage = prog.n / prog.total * 100 if prog and prog.total else 0
         if PROCESSING_DELAY_SEC > 0:
-            await asyncio.sleep(PROCESSING_DELAY_SEC)
+            if percentage < 40:
+                await asyncio.sleep(PROCESSING_DELAY_SEC)
+            else:
+                # second half of messages are processed faster
+                await asyncio.sleep(PROCESSING_DELAY_SEC / 5)
         if prog is not None:
             status = f"Processed {len(data):06,} bytes"
             prog.set_description(status)
@@ -84,20 +89,24 @@ async def keepalive(
             send_time = time.time()
             expiration_time = send_time + ping_interval
             pong_waiter = await websocket.ping()
-            latency: int | float = await pong_waiter
+            latency = await pong_waiter
             now = time.time()
-            log.info(
-                f"Ping {ping:>2}: {latency=:.3f}s | {now - last_ping:.3f}s since last one"
-            )
+            msg = f"Ping {ping:>2}: {latency=:.3f}s | {now - last_ping:.3f}s since last one"
+            log.info(msg)
             last_ping = now
             # this latency is expected to increase as messages pile up in the buffer
-        except websockets.ConnectionClosed as error:
-            if error.code == 1000:
-                log.success("Connection closed normally by the server.")
-            else:
-                log.error(f"Connection closed: {error.code=}, {error.reason=}")
-                log.warning("Stopping keepalive task.")
+        except websockets.ConnectionClosedOK:
+            log.success("Connection closed normally by the server.")
+            log.warning("Stopping keepalive task.")
             break
+        except websockets.ConnectionClosedError as error:
+            log.error(f"Connection closed: {error.code=}, {error.reason=}")
+            log.warning("Stopping keepalive task.")
+            break
+        except Exception as error:
+            log.error(f"Unexpected error in keepalive: {error}")
+            break
+
     log.debug("Keepalive task terminated.")
 
 
@@ -133,11 +142,19 @@ async def process_messages(
             prog.close()
 
 
+def handle_loop_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+    """Handle exceptions in asyncio tasks."""
+    msg = context.get("exception", context["message"])
+    log.error(f"Event loop exception: {msg}")
+
+
 async def receive_messages() -> NoReturn | None:
     """Message processing loop."""
     host = "localhost"
     port = 8765
     ws_uri = f"ws://{host}:{port}"
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(handle_loop_exception)
     async with websockets.connect(
         ws_uri,
         ping_timeout=None,  # keep idle connections open to support large latency spikes
@@ -161,6 +178,7 @@ async def receive_messages() -> NoReturn | None:
         for pending_task in pending:
             if pending_task is keepalive_task:
                 log.info("Cancelling keepalive task.")
+                _res = pending_task.exception()
                 pending_task.cancel()
             elif pending_task is process_messages_task:
                 log.warning(f"Waiting {pending_task.get_name()} indefinitely")
@@ -175,8 +193,7 @@ async def receive_messages() -> NoReturn | None:
                         f"Timeout waiting for {pending_task.get_name()} to finish."
                     )
         for task in done:
-            if task is process_messages_task:
-                return task.result()
+            _error = task.exception()
     return None
 
 

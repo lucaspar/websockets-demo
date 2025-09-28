@@ -1,7 +1,24 @@
 """Common functions for server and client."""
 
 import websockets
+from loguru import logger
 from tqdm.auto import tqdm
+
+
+def configure_tqdm_logger() -> None:
+    """Configure the logger to work well with tqdm progress bars."""
+    logger.remove()
+    logger.add(tqdm.write)  # pyright: ignore[reportArgumentType]
+    logger_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: ^7}</level> | <level>{message}</level>"
+    logger.configure(
+        handlers=[
+            dict(
+                sink=lambda msg: tqdm.write(msg, end=""),
+                format=logger_format,
+                colorize=True,
+            )
+        ]
+    )
 
 
 def get_progress_bar(
@@ -45,3 +62,6 @@ def show_ws_properties(
         if isinstance(value, float):
             value = f"{value:.3f}"
         print(f"  {key:>15} | {value}")
+
+
+configure_tqdm_logger()
