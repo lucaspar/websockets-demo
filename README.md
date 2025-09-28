@@ -11,9 +11,7 @@ Despite the server waiting indefinitely for the client, this implementation does
 allow the connection to timeout. When all messages are sent, the connection may be
 closed. The client keeps processing the remaining buffered messages after that happens.
 
-![](./https://raw.githubusercontent.com/lucaspar/websockets-demo/dd8df25438437b342c7aba341ce66191fa3bd54c/capture.mp4)
-
-<video src="https://raw.githubusercontent.com/lucaspar/websockets-demo/dd8df25438437b342c7aba341ce66191fa3bd54c/capture.mp4" controls title="Websocket Backpressure Demo"></video>
+https://raw.githubusercontent.com/lucaspar/websockets-demo/dd8df25438437b342c7aba341ce66191fa3bd54c/capture.mp4
 
 ## Error codes
 
