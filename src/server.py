@@ -16,9 +16,13 @@ from . import common
 traceback.install(show_locals=True)
 
 
-SERVER_MSG_DELAY_SEC = 0.01
-SEND_MSGS_PERIOD_SEC = 5
-MESSAGES_TO_SEND: int = math.ceil(SEND_MSGS_PERIOD_SEC / SERVER_MSG_DELAY_SEC)
+SERVER_MSG_DELAY_SEC = 0
+SEND_MSGS_PERIOD_SEC = 10
+MESSAGES_TO_SEND: int = (
+    math.ceil(SEND_MSGS_PERIOD_SEC / SERVER_MSG_DELAY_SEC)
+    if SERVER_MSG_DELAY_SEC > 0
+    else 2_000
+)
 
 
 def json_lorem_ipsum() -> str:
@@ -60,13 +64,18 @@ async def send_message_stream(ws: websockets.WebSocketServerProtocol) -> None:
             if (sent_count + 1) % 10 == 0:
                 prog.set_description(f"Sent {sent_count + 1:,} messages")
     except websockets.ConnectionClosed as error:
-        log.error(f"Connection closed: {error.code=}, {error.reason=}")
-        log.error(error)
+        if error.code == 1000:
+            log.info("Connection closed normally by client.")
+        else:
+            log.error(f"Connection closed: {error.code=}, {error.reason=}")
+            log.error(error)
+    except KeyboardInterrupt:
+        log.info("Message sending interrupted by user.")
+        raise
     finally:
         prog.close()
         log.info("Waiting for buffer to drain...")
         await ws.drain()
-        log.info("Buffer drained, leaving message sending loop.")
         log.info("Message sending task terminated.")
 
 
@@ -75,9 +84,6 @@ async def run_server() -> None:
         ws_handler=send_message_stream,
         host="localhost",
         port=8765,
-        write_limit=2**21,  # 2 MiB high water mark for outgoing messages
-        max_size=2**16,  # 64 KiB size of items in queue
-        max_queue=2**3,  # 8 items in outgoing queue
         ping_timeout=None,  # keep idle connections open to support large latency spikes
     ) as server:
         loop = asyncio.get_event_loop()
@@ -90,7 +96,7 @@ async def run_server() -> None:
 def main() -> None:
     log.info("Starting server...")
     try:
-        asyncio.run(run_server())
+        asyncio.run(run_server(), debug=True)
     except KeyboardInterrupt:
         log.info("Server stopped by user.")
         raise

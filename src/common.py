@@ -31,13 +31,8 @@ def show_ws_properties(
 ) -> None:
     """Display WebSocket connection properties."""
     props = {
-        "Subprotocol": ws.subprotocol,
-        "Extensions": ws.extensions,
         "Local address": f"{ws.local_address[0]}:{ws.local_address[1]}",
         "Remote address": f"{ws.remote_address[0]}:{ws.remote_address[1]}",
-        "Open": ws.open,
-        "Close code": ws.close_code,
-        "Close reason": ws.close_reason,
         "Max size": ws.max_size,
         "Max queue": ws.max_queue,
         "Read limit": ws.read_limit,
@@ -45,4 +40,8 @@ def show_ws_properties(
     }
     print("WebSocket connection properties:")
     for key, value in props.items():
-        print(f"  {key:15} {value}")
+        if isinstance(value, int):
+            value = f"{value:>9,}"
+        if isinstance(value, float):
+            value = f"{value:.3f}"
+        print(f"  {key:>15} | {value}")

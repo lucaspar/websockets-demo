@@ -3,6 +3,7 @@
 import asyncio
 import itertools
 import os
+import time
 from pathlib import Path
 from typing import NoReturn
 
@@ -17,8 +18,8 @@ from .server import SERVER_MSG_DELAY_SEC
 
 traceback.install(show_locals=True)
 
-# process messages 5x slower than they are sent
-PROCESSING_DELAY_SEC = SERVER_MSG_DELAY_SEC * 5
+# process messages slower than they are sent
+PROCESSING_DELAY_SEC = max(SERVER_MSG_DELAY_SEC * 10, 0.05)
 
 
 async def process_message(msg: str | bytes, prog: tqdm | None = None) -> None:
@@ -69,14 +70,26 @@ async def process_message(msg: str | bytes, prog: tqdm | None = None) -> None:
 
 async def keepalive(
     websocket: websockets.WebSocketClientProtocol,
-    ping_interval: int = 1,
+    ping_interval: float = 0.5,
 ) -> None:
     log.debug("Keepalive task started.")
+    expiration_time = time.time()
+    last_ping = expiration_time
     for ping in itertools.count():
+        now = time.time()
+        if now < expiration_time:
+            time_left = expiration_time - now
+            await asyncio.sleep(min(ping_interval, time_left))
         try:
+            send_time = time.time()
+            expiration_time = send_time + ping_interval
             pong_waiter = await websocket.ping()
             latency: int | float = await pong_waiter
-            log.info(f"Ping {ping}: latency {latency:.3f} sec")
+            now = time.time()
+            log.info(
+                f"Ping {ping:>2}: {latency=:.3f}s | {now - last_ping:.3f}s since last one"
+            )
+            last_ping = now
             # this latency is expected to increase as messages pile up in the buffer
         except websockets.ConnectionClosed as error:
             if error.code == 1000:
@@ -85,7 +98,6 @@ async def keepalive(
                 log.error(f"Connection closed: {error.code=}, {error.reason=}")
                 log.warning("Stopping keepalive task.")
             break
-        await asyncio.sleep(ping_interval)
     log.debug("Keepalive task terminated.")
 
 
@@ -126,14 +138,8 @@ async def receive_messages() -> NoReturn | None:
     host = "localhost"
     port = 8765
     ws_uri = f"ws://{host}:{port}"
-    read_limit: int = 2**21  # 2 MiB high water mark for incoming messages
-    max_size: int = 2**16  # 64 KiB size of items in queue
-    max_queue: int = 2**5  # 32 items in incoming queue
     async with websockets.connect(
         ws_uri,
-        read_limit=read_limit,
-        max_size=max_size,
-        max_queue=max_queue,
         ping_timeout=None,  # keep idle connections open to support large latency spikes
     ) as ws:
         common.show_ws_properties(ws)
@@ -177,7 +183,7 @@ async def receive_messages() -> NoReturn | None:
 def main() -> None:
     """Run the client."""
     try:
-        asyncio.run(receive_messages())
+        asyncio.run(receive_messages(), debug=True)
     except KeyboardInterrupt:
         log.info("Client stopped by user.")
         raise
