@@ -11,7 +11,7 @@ Despite the server waiting indefinitely for the client, this implementation does
 allow the connection to timeout. When all messages are sent, the connection may be
 closed. The client keeps processing the remaining buffered messages after that happens.
 
-https://raw.githubusercontent.com/lucaspar/websockets-demo/dd8df25438437b342c7aba341ce66191fa3bd54c/capture.mp4
+https://github.com/user-attachments/assets/6d9c2876-d832-4aaf-b16b-9fc196c3d59b
 
 ## Error codes
 
